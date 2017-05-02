@@ -135,7 +135,7 @@ for i=1:4
 end  
 
 %Substitue for the plots
-tmpfit=cm.roundDecimals(double(subs(fit,t,Tmax)),2)
+tmpfit=cm.roundDecimals(double(subs(fit,t,Tmax)),2);
 yi=subs(yi,t,Tmax);
 ycenti=subs(ycenti,t,Tmax);
 
@@ -157,11 +157,11 @@ for i=1:4
 end  
 
 %Substitue for the plots
-tmpfipt=cm.roundDecimals(double(subs(fipt,t,Tmax/4)),2);
+tmpfipt=cm.roundDecimals(double(subs(fipt,t,Tmax/2)),2);
 
 
 % Plot the tetras
-figure(1)
+figure(2)
 cm.plot_tetra_dual(Xi(:,1),Xi(:,2),Xi(:,3),Xi(:,4),yi(:,1),yi(:,2),yi(:,3),yi(:,4))
 % Add the forces vectors
 scaleFact = 0.2;
@@ -169,6 +169,29 @@ for i=1:4
     hold on
     cm.plot_vector(xcenti(:,i),xcenti(:,i)+tmpfipt(:,i)*scaleFact,2,'red')
 end
+
+%% 9.3 (3) Material stress vectors
+%Composition of the transformation
+F = Rt;
+
+for i=1:4
+    fist(:,i) = cm.transpose2(F)*fipt(:,i);
+end  
+
+%Substitue for the plots
+tmpfist=cm.roundDecimals(double(subs(fist,t,Tmax/2)),2);
+
+
+% Plot the tetras
+figure(3)
+cm.plot_tetra_dual(Xi(:,1),Xi(:,2),Xi(:,3),Xi(:,4),yi(:,1),yi(:,2),yi(:,3),yi(:,4))
+% Add the forces vectors
+scaleFact = 0.2;
+for i=1:4
+    hold on
+    cm.plot_vector(xcenti(:,i),xcenti(:,i)+tmpfist(:,i)*scaleFact,2,'green')
+end
+
 
 %% 8.1 (3) Sum of stresses * Area = force
 % Stress vectors on faces
