@@ -1,6 +1,6 @@
 %% Continuum Mechanics, Exercise 9
 % Paul Kulyk
-% Räphael Wenger
+% Raphael Wenger
 %
 % paul.kulyk@students.unibe.ch
 % raphael.wenger@students.unibe.ch
@@ -16,7 +16,7 @@ end
 %% Parameters
 %Toogle symbolic values, used for testing
 enableSyms = 1;
-%% 8.1 Computation of all necessary variables
+%% 9 Computation of all necessary variables
 % define the geometry and build the tetrahedron
 Xi = [[1/10 0 0]; [0 1/10 0]; [0 0 1/10]; [0 0 0]; ]';
 
@@ -172,22 +172,21 @@ end
 %% 9.2 (2) Nominal stress vectors
 % Compute the sum of the moments
 for i=1:4
-    fiptfiAi(:,i) = fit(:,i)*Ait(i);
-    fipt(:,i)=fiptfiAi(:,i)/Ai(i);
+    fipt(:,i)=fit(:,1)*Ait(:,i)/Ai(i);
 end  
 
 %Substitue for the plots
-tmpfiptfiAi=cm.roundDecimals(double(subs(fipt,t,Tmax/2)),2);
+tmpfipt=cm.roundDecimals(double(subs(fipt,t,Tmax/2)),2);
 
 
 % Plot the tetras
 figure(2)
 cm.plot_tetra_dual(Xi(:,1),Xi(:,2),Xi(:,3),Xi(:,4),tmpyi(:,1),tmpyi(:,2),tmpyi(:,3),tmpyi(:,4))
 % Add the forces vectors
-scaleFact = 0.2;
+scaleFact = 0.001;
 for i=1:4
     hold on
-    cm.plot_vector(xcenti(:,i),xcenti(:,i)+tmpfiptfiAi(:,i)*scaleFact,2,'red')
+    cm.plot_vector(xcenti(:,i),xcenti(:,i)+tmpfipt(:,i)*scaleFact,2,'red')
 end
 
 %% 9.3 (3) Material stress vectors
@@ -219,6 +218,7 @@ T   =@(t)   1e6*[...
                 [ 0                                 0                               0 ];...
             ];
 
+% Computer the new transformation with the extra elongation
 % Defined in the problem
 t_max = 3/8;
 
@@ -226,6 +226,8 @@ t_max = 3/8;
 T_4 =   T(t_max/4);
 
 %Compute the additionnal deformation
+% Our picture using this doesn't seem quite right...
+% TODO Double check that this is correct
 Ut=(t/t_max)*cm.dyadic_product11(e1,e1)+I ;
 %Composition of the rotation and dilations
 F = Rt*Ut;
@@ -252,14 +254,14 @@ figure(5)
 cm.plot_tetra_dual(Xi(:,1),Xi(:,2),Xi(:,3),Xi(:,4),tmpyi(:,1),tmpyi(:,2),tmpyi(:,3),tmpyi(:,4))
 hold on
 % Add the forces vectors. Somehow not working...
-scaleFact = 0.000001;
+scaleFact = 5e-7;
 for i=1:4
     cm.plot_vector(tmpycenti(:,i),tmpycenti(:,i)+tmpfit(:,i)*scaleFact,2,'red')
     hold on
 end
 
 %% 9.4 (5) Nominal stress vectors
-% What in the 7 hells is that star supposed to be?
+% Fstar... scourge of the 7 hells.
 Fstar=cm.det2(F)*cm.invert(cm.transpose2(F));
 P = T_4*Fstar;
 
