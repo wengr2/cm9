@@ -7,7 +7,7 @@
 % raphael.wenger@students.unibe.ch
 %
 
-% Due May 9, 201
+% Due May 9, 2017
 %% Include the predefined tensor math functions
 addpath('../../Matlab/');
 if exist('imported','var') ~= 1
@@ -266,7 +266,7 @@ end
 tmpfipt=cm.roundDecimals(double(subs(fipt,t,0)),2);
 
 % Plot the tetras
-figure(2)
+figure(6)
 cm.plot_tetra_dual(Xi(:,1),Xi(:,2),Xi(:,3),Xi(:,4),tmpyi(:,1),tmpyi(:,2),tmpyi(:,3),tmpyi(:,4))
 % Add the forces vectors
 scaleFact = 0.0000002;
@@ -275,27 +275,29 @@ for i=1:4
     cm.plot_vector(xcenti(:,i),xcenti(:,i)+tmpfipt(:,i)*scaleFact,2,'red')
 end
 %% 9.4 (6) Material stress vector
-S = P/F;
+%Doesn't seem to be willing to rotate...
+S = P*cm.invert(F);
 
 
+%Apply on the normals to the faces
 for i=1:4
     fist(:,i) = S*xnormi(:,i);
 end  
 
 %Substitue for the plots
-tmpfist=cm.roundDecimals(double(subs(fipt,t,0)),2);
+tmpfist=cm.roundDecimals(double(subs(fist,t,t_max/4)),2);
 
 
 % Plot the tetras
-figure(3)
+figure(7)
 cm.plot_tetra_dual(Xi(:,1),Xi(:,2),Xi(:,3),Xi(:,4),tmpyi(:,1),tmpyi(:,2),tmpyi(:,3),tmpyi(:,4))
+hold on
 % Add the forces vectors
 scaleFact = 0.000001;
 for i=1:4
     hold on
     cm.plot_vector(xcenti(:,i),xcenti(:,i)+tmpfist(:,i)*scaleFact,2,'green')
 end
-
 %% 
 %Finish
 %publish('exercice9.m')
