@@ -1,12 +1,12 @@
 %% Continuum Mechanics, Exercise 9
 % Paul Kulyk
-% Raphael Wenger
+% Räphael Wenger
 %
 % paul.kulyk@students.unibe.ch
 % raphael.wenger@students.unibe.ch
 %
 
-% Due May 9, 201
+% Due May 9, 2017
 %% Include the predefined tensor math functions
 addpath('../../Matlab/');
 if exist('imported','var') ~= 1
@@ -114,14 +114,21 @@ for i = 1:4
     Aini(:,i) = Ai(i)*ynormi(:,i);
 end
 
-%%
+%% 
 %Only non-zero scalar product is at i=4
 %because all other faces are on the systems plane.
 
 %Only non-singular matrix is @i=4
-i=4;
-wt = -4*cm.invert(cm.scalar_product(ycenti(:,i),Aini(:,i))*I+cm.dyadic_product11(ycenti(:,i),Aini(:,i)))*(F_con0-cm.cross_product(yc,F_con));
+accumulated_dyads = zeros(3);
+for i = 1:4
+    accumulated_dyads = accumulated_dyads + cm.scalar_product(ycenti(:,i),Aini(:,i))*I+cm.dyadic_product11(ycenti(:,i),Aini(:,i));
+end
+wt = -4*cm.invert(accumulated_dyads)*(F_con0-cm.cross_product(yc,F_con));
+if enableSyms == 1
+    wt = simplify(wt);
+end
 
+%%
 % Antisymmetric stress tensor W
 for i = 1:4
     WtiAini(:,i) = -1/2*cm.cross_product(wt,Aini(:,i));
@@ -132,7 +139,7 @@ if enableSyms == 1
     syms T11 T12 T13 T21 T22 T23 T31 T32 T33
     Tt = [T11, T12, T13; T12, T22, T23; T13, T23, T33];  %Taking advantage of the symmetry              
 else
-    Tt = zeros(3)
+    Tt = zeros(3);
 end
 
 % Forces vector on the vertices
@@ -170,7 +177,7 @@ for i=1:4
 end  
 
 %Substitue for the plots
-tmpfiptfiAi=cm.roundDecimals(double(subs(fiptfiAi,t,Tmax/2)),2);
+tmpfiptfiAi=cm.roundDecimals(double(subs(fipt,t,Tmax/2)),2);
 
 
 % Plot the tetras
