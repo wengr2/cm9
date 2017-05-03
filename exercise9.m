@@ -14,7 +14,7 @@ if exist('imported','var') ~= 1
     imported = 1;
 end
 %% Parameters
-%Toogle symbolic values, used for testing
+%Togle symbolic values, used for testing
 enableSyms = 1;
 %% 9 Computation of all necessary variables
 % define the geometry and build the tetrahedron
@@ -27,7 +27,7 @@ rho = 1000; % kg/m^3
 g = 10; % m/s^2 
 
 % Time symbols
-syms T Tmax t
+syms tmax t
 
 
 %%
@@ -39,18 +39,12 @@ R3 = @(theta) [ [ cos(theta) -sin(theta) 0 ]; [ sin(theta) cos(theta) 0 ]; [ 0 0
 %%
 %Motion of the tetrahedron as in exercice 7
 tmax = 1/2;
-if enableSyms == 1
-    T = t;                  %Time defined as a symbol for starters
-else
-    T = Tmax;
-    
-end
 
 %Rotation
-Rt =@(T,Tmax) R3(2*pi*T/Tmax);
+Rt =@(t,tmax) R3(2*pi*t/tmax);
 
 %Translation
-bt =@(T,Tmax) [ 0; 0; 3/20*T/Tmax];
+bt =@(t,tmax) [ 0; 0; 3/20*t/tmax];
 
 %Transformation matrix
 y =@(R,x,b) R*x + b;
@@ -61,8 +55,8 @@ F_contact  =  @(theta) [-pi^2/15*(cos(theta)-sin(theta)); -pi^2/15*(cos(theta)+s
 F_contact0 =  @(fact,theta) fact*[sin(theta)+cos(theta);sin(theta)-cos(theta);0];
 
 %Apply the given values
-F_con  = F_contact(4*pi*T);
-F_con0 = F_contact0((125+pi^2*(4+60*T))/3000,4*pi*T);
+F_con  = F_contact(4*pi*t);
+F_con0 = F_contact0((125+pi^2*(4+60*t))/3000,4*pi*t);
 
 %%
 % Function handle to clean up all these triple integrals
@@ -215,7 +209,7 @@ for i=1:4
 end
 
 %% 9.4 (4) Cauchy Stress Tensor
-T   =@(t)   1e6*[...
+Tt   =@(t)   1e6*[...
                 [ 2*t*(t+1)*(1+2*t)*cos(4*pi*t)^2   t*(t+1)*(1+2*t)*sin(8*pi*t)     0 ];...
                 [ t*(t+1)*(1+2*t)*sin(8*pi*t)       2*t*(t+1)*(1+2*t)*sin(4*pi*t)^2 0 ];...
                 [ 0                                 0                               0 ];...
@@ -224,11 +218,11 @@ T   =@(t)   1e6*[...
 % Computer the new transformation with the extra elongation
 % Defined in the problem
 tmax = 3/8;
-t = tmax/4;
+t = tmax*3/2;
 
 
 % Generate the Cauchy stress tensor at tmax/4
-T_4 =   T(t);
+T_4 =   Tt(t);
 
 %Compute the additional deformation
 Ut=(t/tmax)*cm.dyadic_product11(e1,e1)+I;
@@ -247,9 +241,9 @@ for i=1:4
 end 
 
 %Substitue for the plots
-tmpfit=cm.roundDecimals(double(subs(fit,t,tt)),2);
-tmpyi=subs(yi,t,tt);
-tmpycenti=subs(ycenti,t,tt);
+tmpfit=cm.roundDecimals(double(fit),2);
+tmpyi=eval(yi);
+tmpycenti=eval(ycenti);
 
 % Plot the tetras
 figure(5)
@@ -273,7 +267,7 @@ for i=1:4
 end  
 
 %Substitue for the plots
-tmpfipt=cm.roundDecimals(double(subs(fipt,t,0)),2);
+tmpfipt=cm.roundDecimals(double(fipt),2);
 
 % Plot the tetras
 figure(6)
@@ -286,7 +280,7 @@ for i=1:4
 end
 %% 9.4 (6) Material stress vector
 %Doesn't seem to be willing to rotate...
-S = P*cm.invert(F);
+S = cm.composition22(cm.invert(F),P);
 
 
 %Apply on the normals to the faces
