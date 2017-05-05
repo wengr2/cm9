@@ -28,7 +28,7 @@ g = 10; % m/s^2
 
 % Time symbols
 syms tmax t
-
+tmax = 1/2;
 
 %%
 % Rotation around e1,e2,e3 respectively
@@ -38,7 +38,6 @@ R3 = @(theta) [ [ cos(theta) -sin(theta) 0 ]; [ sin(theta) cos(theta) 0 ]; [ 0 0
 
 %%
 %Motion of the tetrahedron as in exercice 7
-tmax = 1/2;
 
 %Rotation
 Rt =@(t,tmax) R3(2*pi*t/tmax);
@@ -145,15 +144,16 @@ for i=1:4
 end  
 %% 9.1 (1) Cauchy stress
 %Compute the sum of the forces
+tt    = tmax/2; 
 Tt = zeros(3);
 for i=1:4
     fit(:,i) = Tt*ynormi(:,i)-1/2*cm.cross_product(wt,ynormi(:,i))+ 1/(4*Ai(i))*F_con;
 end  
 
 %Substitue for the plots
-tmpfit=cm.roundDecimals(double(subs(fit,t,tmax)),2);
-tmpyi=subs(yi,t,tmax);
-tmpycenti=subs(ycenti,t,tmax);
+tmpfit=cm.roundDecimals(double(subs(fit,t,tt)),2);
+tmpyi=subs(yi,t,tt);
+tmpycenti=subs(ycenti,t,tt);
 
 % Plot the tetras
 figure(1)
@@ -173,7 +173,7 @@ for i=1:4
 end  
 
 %Substitue for the plots
-tmpfipt=cm.roundDecimals(double(subs(fipt,t,tmax/2)),2);
+tmpfipt=cm.roundDecimals(double(subs(fipt,t,tt)),2);
 
 
 % Plot the tetras
@@ -195,7 +195,7 @@ for i=1:4
 end  
 
 %Substitue for the plots
-tmpfist=cm.roundDecimals(double(subs(fipt,t,tmax/2)),2);
+tmpfist=cm.roundDecimals(double(subs(fipt,t,tt)),2);
 
 
 % Plot the tetras
@@ -217,8 +217,8 @@ Tt   =@(t)   1e6*[...
 
 % Computer the new transformation with the extra elongation
 % Defined in the problem
-tmax = 3/8;
-t = tmax*3/2;
+tmax = 1/2;
+t = tmax*3/4;
 
 
 % Generate the Cauchy stress tensor at tmax/4
@@ -289,7 +289,7 @@ for i=1:4
 end  
 
 %Substitue for the plots
-tmpfist=cm.roundDecimals(double(subs(fist,t,t_max/4)),2);
+tmpfist=cm.roundDecimals(double(subs(fist,t,tt)),2);
 
 
 % Plot the tetras
@@ -297,10 +297,10 @@ figure(7)
 cm.plot_tetra_dual(Xi(:,1),Xi(:,2),Xi(:,3),Xi(:,4),tmpyi(:,1),tmpyi(:,2),tmpyi(:,3),tmpyi(:,4))
 hold on
 % Add the forces vectors
-scaleFact = 0.000001;
+scaleFact = genScale(tmpfist);
 for i=1:4
     hold on
-    cm.plot_vector(xcenti(:,i),xcenti(:,i)+tmpfist(:,i)*scaleFact,2,'green')
+    cm.plot_vector(xcenti(:,i),xcenti(:,i)+tmpfist(:,i)*scaleFact,2,'black')
 end
 %% 
 %Finish
