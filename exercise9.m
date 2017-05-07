@@ -1,4 +1,3 @@
-
 %% Continuum Mechanics, Exercise 9
 % Paul Kulyk
 % Raphael Wenger
@@ -7,7 +6,7 @@
 % raphael.wenger@students.unibe.ch
 %
 
-% Due May 9, 201
+% Due May 9, 2017
 %% Include the predefined tensor math functions
 addpath('../../Matlab/');
 if exist('imported','var') ~= 1
@@ -15,9 +14,9 @@ if exist('imported','var') ~= 1
     imported = 1;
 end
 %% Parameters
-%Toogle symbolic values, used for testing
+%Togle symbolic values, used for testing
 enableSyms = 1;
-%% 8.1 Computation of all necessary variables
+%% 9 Computation of all necessary variables
 % define the geometry and build the tetrahedron
 Xi = [[1/10 0 0]; [0 1/10 0]; [0 0 1/10]; [0 0 0]; ]';
 
@@ -28,8 +27,8 @@ rho = 1000; % kg/m^3
 g = 10; % m/s^2 
 
 % Time symbols
-syms T Tmax t
-
+syms tmax t
+tmax = 1/2;
 
 %%
 % Rotation around e1,e2,e3 respectively
@@ -39,19 +38,12 @@ R3 = @(theta) [ [ cos(theta) -sin(theta) 0 ]; [ sin(theta) cos(theta) 0 ]; [ 0 0
 
 %%
 %Motion of the tetrahedron as in exercice 7
-Tmax = 1/2;
-
-if enableSyms == 1
-    T = t;                  %Time defined as a symbol for starters
-else
-    T = Tmax;
-end
 
 %Rotation
-Rt = R3(2*pi*T/Tmax);
+Rt =@(t,tmax) R3(2*pi*t/tmax);
 
 %Translation
-bt = [ 0; 0; 3/20*T/Tmax];
+bt =@(t,tmax) [ 0; 0; 3/20*t/tmax];
 
 %Transformation matrix
 y =@(R,x,b) R*x + b;
@@ -62,19 +54,22 @@ F_contact  =  @(theta) [-pi^2/15*(cos(theta)-sin(theta)); -pi^2/15*(cos(theta)+s
 F_contact0 =  @(fact,theta) fact*[sin(theta)+cos(theta);sin(theta)-cos(theta);0];
 
 %Apply the given values
-F_con  = F_contact(4*pi*T);
-F_con0 = F_contact0((125+pi^2*(4+60*T))/3000,4*pi*T);
+F_con  = F_contact(4*pi*t);
+F_con0 = F_contact0((125+pi^2*(4+60*t))/3000,4*pi*t);
 
 %%
 % Function handle to clean up all these triple integrals
 TripInt =@(fun,v1,l1,u1,v2,l2,u2,v3,l3,u3) int( int( int( fun, v1, l1, u1), v2, l2, u2), v3, l3, u3);
+
+% Function handle to normalize the vectors
+genScale =@ (vectors) 0.1/max(sqrt(sum(abs(vectors).^2,1)));
 
 % Function handle for the are of faces
 faceArea = @(nodeB,nodeC,nodeD) 1/2*cm.norm(cm.cross_product((nodeC-nodeD),(nodeB-nodeD)));  
 
 %%
 %Computation of the new vertices
-yt = y(Rt,Xi(1:3,1:3)*b,bt); % Simple transform of b into x into y...
+yt = y(Rt(t,tmax),Xi(1:3,1:3)*b,bt(t,tmax)); % Simple transform of b into x into y...
 
 %%
 %Center of gravtiy
@@ -88,10 +83,10 @@ yc = COG(yt);
 
 %%
 %Final positions
-yi(:,1) = y(Rt,Xi(:,1),bt);
-yi(:,2) = y(Rt,Xi(:,2),bt);
-yi(:,3) = y(Rt,Xi(:,3),bt);
-yi(:,4) = y(Rt,Xi(:,4),bt);
+yi(:,1) = y(Rt(t,tmax),Xi(:,1),bt(t,tmax));
+yi(:,2) = y(Rt(t,tmax),Xi(:,2),bt(t,tmax));
+yi(:,3) = y(Rt(t,tmax),Xi(:,3),bt(t,tmax));
+yi(:,4) = y(Rt(t,tmax),Xi(:,4),bt(t,tmax));
 
 %Get the normals to the faces, centers and area
 Ai(1)=faceArea(Xi(:,2),Xi(:,3),Xi(:,4));
@@ -115,14 +110,21 @@ for i = 1:4
     Aini(:,i) = Ai(i)*ynormi(:,i);
 end
 
-%%
+%% 
 %Only non-zero scalar product is at i=4
 %because all other faces are on the systems plane.
 
 %Only non-singular matrix is @i=4
-i=4;
-wt = -4*cm.invert(cm.scalar_product(ycenti(:,i),Aini(:,i))*I+cm.dyadic_product11(ycenti(:,i),Aini(:,i)))*(F_con0-cm.cross_product(yc,F_con));
+accumulated_dyads = zeros(3);
+for i = 1:4
+    accumulated_dyads = accumulated_dyads + cm.scalar_product(ycenti(:,i),Aini(:,i))*I+cm.dyadic_product11(ycenti(:,i),Aini(:,i));
+end
+wt = -4*cm.invert(accumulated_dyads)*(F_con0-cm.cross_product(yc,F_con));
+if enableSyms == 1
+    wt = simplify(wt);
+end
 
+%%
 % Antisymmetric stress tensor W
 for i = 1:4
     WtiAini(:,i) = -1/2*cm.cross_product(wt,Aini(:,i));
@@ -133,7 +135,7 @@ if enableSyms == 1
     syms T11 T12 T13 T21 T22 T23 T31 T32 T33
     Tt = [T11, T12, T13; T12, T22, T23; T13, T23, T33];  %Taking advantage of the symmetry              
 else
-    Tt = zeros(3)
+    Tt = zeros(3);
 end
 
 % Forces vector on the vertices
@@ -142,21 +144,22 @@ for i=1:4
 end  
 %% 9.1 (1) Cauchy stress
 %Compute the sum of the forces
+tt    = tmax/2; 
 Tt = zeros(3);
 for i=1:4
     fit(:,i) = Tt*ynormi(:,i)-1/2*cm.cross_product(wt,ynormi(:,i))+ 1/(4*Ai(i))*F_con;
 end  
 
 %Substitue for the plots
-tmpfit=cm.roundDecimals(double(subs(fit,t,Tmax)),2);
-tmpyi=subs(yi,t,Tmax);
-tmpycenti=subs(ycenti,t,Tmax);
+tmpfit=cm.roundDecimals(double(subs(fit,t,tt)),2);
+tmpyi=subs(yi,t,tt);
+tmpycenti=subs(ycenti,t,tt);
 
 % Plot the tetras
 figure(1)
 cm.plot_tetra_dual(Xi(:,1),Xi(:,2),Xi(:,3),Xi(:,4),tmpyi(:,1),tmpyi(:,2),tmpyi(:,3),tmpyi(:,4))
 % Add the forces vectors
-scaleFact = 0.001;
+scaleFact = genScale(tmpfit);
 for i=1:4
     hold on
     cm.plot_vector(tmpycenti(:,i),tmpycenti(:,i)+tmpfit(:,i)*scaleFact,2,'red')
@@ -166,68 +169,69 @@ end
 %% 9.2 (2) Nominal stress vectors
 % Compute the sum of the moments
 for i=1:4
-    fiptfiAi(:,i) = fit(:,i)*Ait(i);
-    fipt(:,i)=fiptfiAi(:,i)/Ai(i);
+    fipt(:,i)=fit(:,1)*Ait(:,i)/Ai(i);
 end  
 
 %Substitue for the plots
-tmpfiptfiAi=cm.roundDecimals(double(subs(fiptfiAi,t,Tmax/2)),2);
+tmpfipt=cm.roundDecimals(double(subs(fipt,t,tt)),2);
 
 
 % Plot the tetras
 figure(2)
 cm.plot_tetra_dual(Xi(:,1),Xi(:,2),Xi(:,3),Xi(:,4),tmpyi(:,1),tmpyi(:,2),tmpyi(:,3),tmpyi(:,4))
 % Add the forces vectors
-scaleFact = 0.2;
+scaleFact = genScale(tmpfipt);
 for i=1:4
     hold on
-    cm.plot_vector(xcenti(:,i),xcenti(:,i)+tmpfiptfiAi(:,i)*scaleFact,2,'red')
+    cm.plot_vector(xcenti(:,i),xcenti(:,i)+tmpfipt(:,i)*scaleFact,2,'red')
 end
 
 %% 9.3 (3) Material stress vectors
 %Composition of the transformation
-F = Rt;
+F = Rt(t,tmax);
 
 for i=1:4
     fist(:,i) = cm.transpose2(F)*fipt(:,i);
 end  
 
 %Substitue for the plots
-tmpfist=cm.roundDecimals(double(subs(fipt,t,Tmax/2)),2);
+tmpfist=cm.roundDecimals(double(subs(fipt,t,tt)),2);
 
 
 % Plot the tetras
 figure(3)
 cm.plot_tetra_dual(Xi(:,1),Xi(:,2),Xi(:,3),Xi(:,4),tmpyi(:,1),tmpyi(:,2),tmpyi(:,3),tmpyi(:,4))
 % Add the forces vectors
-scaleFact = 0.001;
+scaleFact = genScale(tmpfist);
 for i=1:4
     hold on
     cm.plot_vector(xcenti(:,i),xcenti(:,i)+tmpfist(:,i)*scaleFact,2,'green')
 end
 
 %% 9.4 (4) Cauchy Stress Tensor
-T   =@(t)   1e6*[...
+Tt   =@(t)   1e6*[...
                 [ 2*t*(t+1)*(1+2*t)*cos(4*pi*t)^2   t*(t+1)*(1+2*t)*sin(8*pi*t)     0 ];...
                 [ t*(t+1)*(1+2*t)*sin(8*pi*t)       2*t*(t+1)*(1+2*t)*sin(4*pi*t)^2 0 ];...
                 [ 0                                 0                               0 ];...
             ];
 
+% Computer the new transformation with the extra elongation
 % Defined in the problem
-t_max = 3/8;
+tmax = 1/2;
+t = tmax*3/4;
+
 
 % Generate the Cauchy stress tensor at tmax/4
-T_4 =   T(t_max/4);
+T_4 =   Tt(t);
 
-%Compute the additionnal deformation
-Ut=(t/t_max)*cm.dyadic_product11(e1,e1)+I ;
+%Compute the additional deformation
+Ut=(t/tmax)*cm.dyadic_product11(e1,e1)+I;
 %Composition of the rotation and dilations
-F = Rt*Ut;
+F = cm.composition22(Rt(t,tmax),Ut);
 
 %Update the transformation with the dilation. 
-%Not sur what tmax, t etc. we should use anymore...
 for i=1:4
-    yi(:,i) = y(F,Xi(:,i),bt);
+    yi(:,i) = y(F,Xi(:,i),bt(t,tmax));
 end
 [ynormi ycenti] = cm.get_tetra_normal(yi(:,1),yi(:,2),yi(:,3),yi(:,4));
 
@@ -237,23 +241,23 @@ for i=1:4
 end 
 
 %Substitue for the plots
-tmpfit=cm.roundDecimals(double(subs(fit,t,t_max/4)),2);
-tmpyi=subs(yi,t,t_max/4);
-tmpycenti=subs(ycenti,t,t_max/4);
+tmpfit=cm.roundDecimals(double(fit),2);
+tmpyi=eval(yi);
+tmpycenti=eval(ycenti);
 
 % Plot the tetras
 figure(5)
 cm.plot_tetra_dual(Xi(:,1),Xi(:,2),Xi(:,3),Xi(:,4),tmpyi(:,1),tmpyi(:,2),tmpyi(:,3),tmpyi(:,4))
 hold on
 % Add the forces vectors. Somehow not working...
-scaleFact = 0.000001;
+scaleFact = genScale(tmpfit);
 for i=1:4
     cm.plot_vector(tmpycenti(:,i),tmpycenti(:,i)+tmpfit(:,i)*scaleFact,2,'red')
     hold on
 end
 
 %% 9.4 (5) Nominal stress vectors
-% What in the 7 hells is that star supposed to be?
+% Fstar... 
 Fstar=cm.det2(F)*cm.invert(cm.transpose2(F));
 P = T_4*Fstar;
 
@@ -263,39 +267,41 @@ for i=1:4
 end  
 
 %Substitue for the plots
-tmpfipt=cm.roundDecimals(double(subs(fipt,t,0)),2);
+tmpfipt=cm.roundDecimals(double(fipt),2);
 
 % Plot the tetras
-figure(2)
+figure(6)
 cm.plot_tetra_dual(Xi(:,1),Xi(:,2),Xi(:,3),Xi(:,4),tmpyi(:,1),tmpyi(:,2),tmpyi(:,3),tmpyi(:,4))
 % Add the forces vectors
-scaleFact = 0.0000002;
+scaleFact = genScale(tmpfipt);
 for i=1:4
     hold on
     cm.plot_vector(xcenti(:,i),xcenti(:,i)+tmpfipt(:,i)*scaleFact,2,'red')
 end
 %% 9.4 (6) Material stress vector
-S = P/F;
+%Doesn't seem to be willing to rotate...
+S = cm.composition22(cm.invert(F),P);
 
 
+%Apply on the normals to the faces
 for i=1:4
     fist(:,i) = S*xnormi(:,i);
 end  
 
 %Substitue for the plots
-tmpfist=cm.roundDecimals(double(subs(fipt,t,0)),2);
+tmpfist=cm.roundDecimals(double(subs(fist,t,tt)),2);
 
 
 % Plot the tetras
-figure(3)
+figure(7)
 cm.plot_tetra_dual(Xi(:,1),Xi(:,2),Xi(:,3),Xi(:,4),tmpyi(:,1),tmpyi(:,2),tmpyi(:,3),tmpyi(:,4))
+hold on
 % Add the forces vectors
-scaleFact = 0.000001;
+scaleFact = genScale(tmpfist);
 for i=1:4
     hold on
-    cm.plot_vector(xcenti(:,i),xcenti(:,i)+tmpfist(:,i)*scaleFact,2,'green')
+    cm.plot_vector(xcenti(:,i),xcenti(:,i)+tmpfist(:,i)*scaleFact,2,'black')
 end
-
 %% 
 %Finish
 %publish('exercice9.m')
